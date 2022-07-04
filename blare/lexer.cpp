@@ -1,4 +1,4 @@
-﻿#include "lexer.h"
+#include "lexer.h"
 
 using namespace Blare;
 
@@ -7,7 +7,7 @@ using namespace Blare;
  * @param token Value of current token.
  * @param line Line where the token at.
  */
-Blare::Token::Token(int token, size_t line) {
+Blare::Token::Token(TokenID token, size_t line) {
 	this->token = token;
 	this->line = line;
 }
@@ -17,11 +17,11 @@ Blare::Token::~Token() {}
  * @brief Get value of the token.
  * @return Value of the token.
  */
-int Blare::Token::getToken() {
+TokenID Blare::Token::getToken() {
 	return token;
 }
 
-void Blare::Token::setToken(int token) {
+void Blare::Token::setToken(TokenID token) {
 	this->token = token;
 }
 
@@ -63,25 +63,37 @@ void Blare::Lexer::unregisterState(StateID id) {
 }
 
 /**
- * @brief Lexical analyse a string with the lexical analyser.
+ * @brief Analyse a string with the lexical analyser.
  * @param src String to analyse.
  * @exception LexicalError Throws if any lexical error has occurred.
  * @return Generated token.
  */
-Util::ArrayList<std::shared_ptr<Token>> Blare::Lexer::lex(std::string src) {
-	Util::ArrayList<std::shared_ptr<Token>> tokens;
+TokenList Blare::Lexer::lex(std::string src) throw (LexicalError) {
+	TokenList tokens;
+	std::shared_ptr<Token> token = nullptr;
 	for (size_t i = 0, line = 0; i < src.size();) {
 		size_t end;
+
 		// Try to match contents as more as possible.
-		for (end = src.size(); end >= i; end--) {
+		for (end = src.size(); end > i; end--) {
+			// Sliced string to match.
 			auto matchStr = src.substr(i, end - i);
-			auto token = states[currentState]->match(matchStr);
-			if (token) {
-				if (token->getToken() >= TOKENID_VALID_MIN && token->getToken() <= TOKENID_VALID_MAX)
+
+			if (states[currentState]->match(matchStr, token)) {
+				// Check if the rule hinted the analyser to discard current token
+				if (token->getToken() != TOKEN_INVALID) {
+					token->setLine(line);
 					tokens.push_back(token);
-				line += std::count(matchStr.begin(), matchStr.end(), '\n'); // Increase line automatically.
+				}
+
+				// Increase line automatically.
+				line += std::count(matchStr.begin(), matchStr.end(), '\n');
+				token = nullptr;
 				goto matched;
 			}
+			// Keep current token and skip scanned area if the rule returned false but created the token
+			if (token)
+				goto matched;
 		}
 
 		throw LexicalError(line);
@@ -109,11 +121,11 @@ Blare::LexRule::~LexRule() {}
  * @param str String to match.
  * @return Generated token if matched, nullptr otherwise.
  */
-std::shared_ptr<Token> Blare::LexRule::match(std::string str) {
+bool Blare::LexRule::match(std::string str, std::shared_ptr<Token>& dest) {
 	std::smatch result;
 	if (!std::regex_match(str, result, rule))
-		return nullptr;
-	return then(result);
+		return false;
+	return then(result,dest);
 }
 
 Blare::State::~State() {}
@@ -123,48 +135,21 @@ Blare::State::~State() {}
  * @param str String to match.
  * @return Generated token if matched, nullptr otherwise.
  */
-std::shared_ptr<Token> Blare::State::match(std::string str) {
+bool Blare::State::match(std::string str, std::shared_ptr<Token>& dest) {
 	for (auto i : rules) {
-		auto result = i.second->match(str);
+		auto result = i->match(str,dest);
 		if (result)
 			return result;
 	}
-	return nullptr;
+	return false;
 }
 
 /**
- * @brief Register a lexical rule with specified ID.
- * @param id ID for new rule.
+ * @brief Add a lexical rule.
  * @param rule Lexical rule to register.
  */
-void Blare::State::registerRule(int id, std::shared_ptr<LexRule> rule) {
-	rules[id] = rule;
-}
-
-/**
- * @brief Get the lexical rule associated with specified ID.
- * @param id Associated ID.
- * @return Associated lexical rule.
- */
-std::weak_ptr<LexRule> Blare::State::getRule(int id) {
-	return std::weak_ptr<LexRule>(rules[id]);
-}
-
-/**
- * @brief Unregister the rule associated with specified ID.
- * @param id Associated ID.
- */
-void Blare::State::unregisterRule(int id) {
-	rules.erase(id);
-}
-
-/**
- * @brief Check if the ID has been registered.
- * @param id ID to check.
- * @return Whether the ID has been registered.
- */
-bool Blare::State::hasRule(int id) {
-	return rules.count(id) != 0;
+void Blare::State::addRule(std::shared_ptr<LexRule> rule) {
+	rules.push_back(rule);
 }
 
 /**

@@ -2,8 +2,6 @@
 #define __BLARE_UTIL_CONTAINER_HPP__
 
 #include <list>
-#include <memory>
-#include <stdexcept>
 
 namespace Blare {
 	namespace Util {

@@ -5,35 +5,38 @@
 
 namespace Blare {
 	class SyntaxError : std::runtime_error {
-	protected:
-		size_t line;
-
 	public:
-		explicit SyntaxError(size_t line);
+		explicit SyntaxError();
+		explicit SyntaxError(std::string msg);
 		virtual ~SyntaxError();
-		virtual size_t getLine();
 	};
 
-	class ParseRule {
-	public:
-		using ThenProc = std::function<void(TokenID tokens)>;
+	struct ParseRule {
+		using ThenProc = std::function<void(TokenList& tokens)>;
 		ParseRule& operator=(ParseRule&) = delete;
-
-	protected:
-		TokenID tokens;
+		std::deque<TokenID> tokens;
 		ThenProc then;
+
+		ParseRule(std::initializer_list<TokenID> ls, ThenProc then);
+		virtual ~ParseRule();
+
+		static std::shared_ptr<ParseRule> make(std::initializer_list<TokenID> ls, ThenProc then);
 	};
 
 	class Parser {
 	protected:
-		std::map<TokenID, ParseRule> parseRules;
+		std::map<TokenID, std::shared_ptr<ParseRule>> parseRules;
 
+		virtual TokenList::const_iterator parseRecursion(
+			TokenList::const_iterator begin,
+			TokenList::const_iterator end,
+			TokenID token);
+		virtual void addRule(TokenID id, std::shared_ptr<ParseRule>& rule);
 	public:
 		Parser();
 		virtual ~Parser();
 
-		void parse(
-			const Util::ArrayList<std::shared_ptr<Token>>& tokens);
+		virtual void parse(const TokenList& tokens);
 	};
 }
 
