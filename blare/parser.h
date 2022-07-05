@@ -14,13 +14,13 @@ namespace Blare {
 	struct ParseRule {
 		using ThenProc = std::function<void(TokenList& tokens)>;
 		ParseRule& operator=(ParseRule&) = delete;
-		std::deque<TokenID> tokens;
+		std::deque<std::deque<TokenID>> terms;
 		ThenProc then;
 
-		ParseRule(std::initializer_list<TokenID> ls, ThenProc then);
+		ParseRule(std::deque<std::deque<TokenID>> ls, ThenProc then);
 		virtual ~ParseRule();
 
-		static std::shared_ptr<ParseRule> make(std::initializer_list<TokenID> ls, ThenProc then);
+		static std::shared_ptr<ParseRule> make(std::deque<std::deque<TokenID>> ls, ThenProc then);
 	};
 
 	class Parser {

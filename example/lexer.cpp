@@ -52,8 +52,30 @@ ExampleLexer::ExampleLexer() : Lexer() {
 			return true;
 		});
 
+	initialState->addRule(R"(@)", '@');
+	initialState->addRule(R"(#)", '#');
+	initialState->addRule(R"(\$)", '$');
+	initialState->addRule(R"(!)", '!');
+	initialState->addRule(R"(\+)", '+');
+	initialState->addRule(R"(-)", '-');
+	initialState->addRule(R"(\*)", '*');
+	initialState->addRule(R"(\/)", '/');
+	initialState->addRule(R"(%)", '%');
+	initialState->addRule(R"(&)", '&');
+	initialState->addRule(R"(\|)", '|');
+	initialState->addRule(R"(\^)", '^');
+	initialState->addRule(R"(>)", '>');
+	initialState->addRule(R"(<)", '<');
+	initialState->addRule(R"(=)", '=');
+	initialState->addRule(R"(~)", '~');
+	initialState->addRule(R"(\?)", '?');
+
 	initialState->addRule(R"(\()", '(');
 	initialState->addRule(R"(\))", ')');
+	initialState->addRule(R"(\[)", '[');
+	initialState->addRule(R"(\])", ']');
+
+	initialState->addRule(R"(\.)", '.');
 	initialState->addRule(R"(,)", ',');
 	initialState->addRule(R"(;)", ';');
 
