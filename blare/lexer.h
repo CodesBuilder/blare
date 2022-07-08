@@ -10,7 +10,7 @@
 #include <string>
 
 namespace Blare {
-	class LexicalError : std::runtime_error {
+	class LexicalError : public std::runtime_error {
 	protected:
 		size_t line;
 

@@ -156,7 +156,7 @@ void Blare::State::addRule(std::shared_ptr<LexRule> rule) {
  * @brief Constructor of exception class `lexical error'
  * @param line Line where the error at.
  */
-Blare::LexicalError::LexicalError(size_t line) : std::runtime_error("Syntax error at line " + std::to_string(line)) {
+Blare::LexicalError::LexicalError(size_t line) : std::runtime_error("Lexical error") {
 	this->line = line;
 }
 

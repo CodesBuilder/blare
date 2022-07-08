@@ -5,7 +5,10 @@ typedef enum {
 	TOKEN_UINT,
 	TOKEN_FLOAT,
 	TOKEN_DOUBLE,
-	TOKEN_SYMBOL
+	TOKEN_SYMBOL,
+
+	KEYWORD_FUNC,
+	KEYWORD_VAR
 } LexicalTokens;
 
 class ExampleLexer : public Blare::Lexer {

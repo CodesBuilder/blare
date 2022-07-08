@@ -1,4 +1,4 @@
-#include "lexer.h"
+#include "lex.h"
 
 ExampleLexer::ExampleLexer() : Lexer() {
 	auto initialState = std::make_shared<Blare::State>();
@@ -8,6 +8,9 @@ ExampleLexer::ExampleLexer() : Lexer() {
 
 	int currentId = 0;
 	registerState(STATE_INITIAL, std::weak_ptr<Blare::State>(initialState));
+
+	initialState->addRule(R"(func)", KEYWORD_FUNC);
+	initialState->addRule(R"(var)", KEYWORD_VAR);
 
 	initialState->addRule(
 		R"([-]?[0-9]+)",

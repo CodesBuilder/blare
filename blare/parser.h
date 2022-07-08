@@ -4,10 +4,13 @@
 #include "lexer.h"
 
 namespace Blare {
-	class SyntaxError : std::runtime_error {
+	class SyntaxError : public std::runtime_error {
+	protected:
+		std::shared_ptr<Token> token;
 	public:
-		explicit SyntaxError();
-		explicit SyntaxError(std::string msg);
+		explicit SyntaxError(std::shared_ptr<Token> token);
+		explicit SyntaxError(std::shared_ptr<Token> token, std::string msg);
+		virtual std::shared_ptr<Token> getToken();
 		virtual ~SyntaxError();
 	};
 
@@ -25,9 +28,9 @@ namespace Blare {
 
 	class Parser {
 	protected:
-		std::map<TokenID, std::shared_ptr<ParseRule>> parseRules;
+		std::map<TokenID, std::shared_ptr<ParseRule>, std::less<TokenID>> parseRules;
 
-		virtual TokenList::const_iterator parseRecursion(
+		virtual TokenList::const_iterator parseCore(
 			TokenList::const_iterator begin,
 			TokenList::const_iterator end,
 			TokenID token);

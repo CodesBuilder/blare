@@ -13,7 +13,7 @@ namespace Blare {
 				auto it = begin();
 				while (i != index) {
 					if (it == end())
-						throw std::out_of_range();
+						throw std::out_of_range("Out of range");
 					it++, i++;
 				}
 				return it;

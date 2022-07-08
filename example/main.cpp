@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "parse.h"
 #include <stdio.h>
 
 int main(int argc, char** argv) {
@@ -9,25 +9,32 @@ int main(int argc, char** argv) {
 	std::shared_ptr<ExampleParser> parser = std::make_shared<ExampleParser>();
 
 	if (argc != 2) {
+		// Interactive mode
 		while (true) {
+			printf(">");
+
 			std::string src;
 			while (true)
 			{
 				int c = getc(stdin);
-				if (c == EOF || c == '\n')
+				if (c == '\n') {
+					if (*(std::prev(src.end())) == '\\') {
+						src.erase(std::prev(src.end()));
+						continue;
+					}
 					break;
+				}
 				src += (char)c;
 			}
-			auto tokens = lexer->lex(src);
-			for (auto i : tokens) {
-				if (isprint(i->getToken())) {
-					printf("'%c' ", (char)i->getToken());
-					continue;
-				}
-				printf("%d ", i->getToken());
+
+			try {
+				auto tokens = lexer->lex(src);
+				parser->parse(tokens);
+			} catch (Blare::LexicalError e) {
+				printf("Error at line %zu: %s\n", e.getLine() + 1, e.what());
+			} catch (Blare::SyntaxError e) {
+				printf("Error at line %zu: %s\n", e.getToken()->getLine() + 1, e.what());
 			}
-			parser->parse(tokens);
-			puts("");
 		}
 	}
 
@@ -54,12 +61,10 @@ int main(int argc, char** argv) {
 	delete[] buf;
 
 	auto tokens = lexer->lex(src);
-	for (auto i : tokens) {
-		if (isalpha(i->getToken())) {
-			printf("'%c' ", (char)i->getToken());
-			continue;
-		}
-		printf("%d", i->getToken());
+	try {
+		parser->parse(tokens);
+	} catch (Blare::SyntaxError e) {
+		printf("Error at line %zu: %s\n", e.getToken()->getLine() + 1, e.what());
 	}
 	return 0;
 }
