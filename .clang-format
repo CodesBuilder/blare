@@ -2,7 +2,9 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: DontAlign
 AllowShortBlocksOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
-BasedOnStyle: LLVM
+AllowShortLambdasOnASingleLine: true
+BasedOnStyle: Google
+BinPackParameters: false
 BraceWrapping:
   AfterClass: false
   AfterControlStatement: false
@@ -14,19 +16,19 @@ BraceWrapping:
   BeforeCatch: false
   BeforeElse: false
   IndentBraces: false
-  SplitEmptyFunction: true
-  SplitEmptyRecord: true
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
 BreakBeforeBraces: Custom
 ColumnLimit: 0
 Cpp11BracedListStyle: false
 FixNamespaceComments: false
+IncludeBlocks: Regroup
 IndentCaseLabels: true
-IndentPPDirectives: None
+IndentPPDirectives: BeforeHash
 IndentWidth: 4
 MaxEmptyLinesToKeep: 10
 NamespaceIndentation: All
 PointerAlignment: Left
-SortIncludes: true
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: false
 SpaceBeforeAssignmentOperators: true
@@ -34,6 +36,7 @@ SpaceBeforeParens: ControlStatements
 SpaceInEmptyParentheses: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
+Standard: c++11
 SpacesInSquareBrackets: false
 TabWidth: 4
 UseTab: true

@@ -15,43 +15,43 @@ ExampleLexer::ExampleLexer() : Lexer() {
 	initialState->addRule(
 		R"([-]?[0-9]+)",
 		[](std::smatch result, auto& dest) -> bool {
-			dest = Blare::ValuedToken<int32_t>::make(TOKEN_INT, 0, atoi(result.str().c_str()));
+			dest = IntToken::make(TOKEN_INT, atoi(result.str().c_str()));
 			return true;
 		});
 	initialState->addRule(
 		R"([-]?[0-9]+[uU])",
 		[](std::smatch result, auto& dest) -> bool {
-			dest = Blare::ValuedToken<uint32_t>::make(TOKEN_UINT, 0, strtoul(result.str().c_str(), nullptr, 0));
+			dest = UIntToken::make(TOKEN_UINT, strtoul(result.str().c_str(), nullptr, 0));
 			return true;
 		});
 	initialState->addRule(
 		R"([-]?[0-9]+[lL])",
 		[](std::smatch result, auto& dest) -> bool {
-			dest = Blare::ValuedToken<int64_t>::make(TOKEN_INT, 0, atoi(result.str().c_str()));
+			dest = LongToken::make(TOKEN_LONG, atoi(result.str().c_str()));
 			return true;
 		});
 	initialState->addRule(
 		R"([-]?[0-9]+(?:(?:[uU][lL])|(?:[lL][uU])))",
 		[](std::smatch result, auto& dest) -> bool {
-			dest = Blare::ValuedToken<int64_t>::make(TOKEN_UINT, 0, strtoul(result.str().c_str(), nullptr, 0));
+			dest = ULongToken::make(TOKEN_ULONG, strtoul(result.str().c_str(), nullptr, 0));
 			return true;
 		});
 	initialState->addRule(
 		R"([-]?(?:(?:[0-9]+\.[0-9]+)|(?:\.[0-9]+)|(?:[0-9]+\.)|(?:[0-9]+))[fF])",
 		[](std::smatch result, auto& dest) -> bool {
-			dest = Blare::ValuedToken<float>::make(TOKEN_FLOAT, 0, (float)atof(result.str().c_str()));
+			dest = FloatToken::make(TOKEN_FLOAT, (float)atof(result.str().c_str()));
 			return true;
 		});
 	initialState->addRule(
 		R"([-]?(?:(?:[0-9]+\.[0-9]+)|(?:\.[0-9]+)|(?:[0-9]+\.)|(?:[0-9]+)))",
 		[](std::smatch result, auto& dest) -> bool {
-			dest = Blare::ValuedToken<double>::make(TOKEN_DOUBLE, 0, atof(result.str().c_str()));
+			dest = DoubleToken::make(TOKEN_DOUBLE, atof(result.str().c_str()));
 			return true;
 		});
 	initialState->addRule(
 		R"([a-zA-Z_][a-zA-Z0-9_]*)",
 		[](std::smatch result, auto& dest) -> bool {
-			dest = Blare::ValuedToken<std::string>::make(TOKEN_SYMBOL, 0, result.str());
+			dest = SymbolToken::make(TOKEN_SYMBOL, result.str());
 			return true;
 		});
 
@@ -82,7 +82,7 @@ ExampleLexer::ExampleLexer() : Lexer() {
 	initialState->addRule(R"(,)", ',');
 	initialState->addRule(R"(;)", ';');
 
-	initialState->addRule(R"([ \t\n\r]+)", Blare::TOKEN_INVALID); // Ignored
+	initialState->addRule(R"([ \t\n\r]+)", Blare::TOKEN_INVALID);  // Ignored
 }
 
 ExampleLexer::~ExampleLexer() {

@@ -8,25 +8,20 @@ Blare::Parser::Parser() {
 Blare::Parser::~Parser() {
 }
 
-void Blare::Parser::parse(const TokenList& tokens) {
-	auto curToken = tokens.begin(), end = tokens.end();
-	while (curToken != end) {
-		for (auto curRule : parseRules) { // Match for each rules.
-			// Make a copy for scanning.
-			auto scanCurToken = curToken;
+void Blare::Parser::addRule(TokenID id, ParseRule rule) { parseRules[id] = rule; }
 
-			try {
-				scanCurToken = parseCore(scanCurToken, end, curRule.first);
-			} catch (SyntaxError) {
-				continue;
-			}
-			curToken = scanCurToken;
-			goto succeed;
-		}
-		// If there's no any rule can be matched, throw a syntax error.
+shared_ptr<Token> Blare::Parser::parse(const TokenList& tokens) {
+	auto curToken = tokens.begin(), end = tokens.end();
+	shared_ptr<Token> token(nullptr);
+
+	// The first rule will be assumed as the root rule.
+	curToken = parseCore(curToken, end, parseRules.begin()->first, token);
+
+	// If tokens were not complete matched, throw a syntax error.
+	if (curToken != end)
 		throw SyntaxError(*curToken);
-	succeed:;
-	}
+
+	return token;
 }
 
 /**
@@ -39,76 +34,71 @@ void Blare::Parser::parse(const TokenList& tokens) {
 TokenList::const_iterator Blare::Parser::parseCore(
 	TokenList::const_iterator curToken,
 	TokenList::const_iterator end,
-	TokenID token) {
+	TokenID token,
+	shared_ptr<Token>& dest) {
 	const auto& curRule = parseRules[token];
-	while (curToken != end) {
-		auto scanCurToken = curToken;		  // Make a copy for scanning.
-		for (auto curTerm : curRule->terms) { // Match for each terms in the rule.
-			scanCurToken = curToken;
-			for (auto curRuleToken : curTerm) { // Match for each tokens in the term.
-				if (scanCurToken == end)
-					// Mismatch if reached the end.
+
+	// Match for each terms in the rule.
+	for (auto curTerm : curRule.terms) {
+		auto scanCur = curToken;  // Iterator of current scanning token
+
+		TokenList tokenList;
+		// Match for each tokens in the term
+		for (auto curRuleToken : curTerm.tokens) {
+			if (scanCur == end)	 // Mismatch if reached the end
+				goto mismatched;
+
+			// Current token
+			const auto scanCurToken = scanCur->get()->getToken();
+
+			if (isLexicalToken(curRuleToken)) {
+				if (curRuleToken != scanCurToken)
 					goto mismatched;
-				// Check if current rule token represents a parse rule.
-				if (curRuleToken < 0) {
-					try {
-						std::deque<ParseRule::ThenProc> thenTasks;
-						scanCurToken = parseCore(scanCurToken, end, curRuleToken);
-					} catch (SyntaxError) {
-						goto mismatched;
-					}
-				} else {
-					if (curRuleToken != (*scanCurToken)->getToken())
-						goto mismatched;
-					scanCurToken++; // Skip scanned token
+
+				tokenList.push_back(*scanCur);
+				scanCur++;	// Skip scanned token
+			} else {
+				// The token represents a node of the rule.
+				shared_ptr<Token> selfToken(nullptr);
+
+				try {
+					scanCur = parseCore(scanCur, end, curRuleToken, selfToken);
+				} catch (SyntaxError) {
+					goto mismatched;
 				}
-			}
 
-			{
-				TokenList ls;
-				for (auto i = curToken; i != scanCurToken; i++)
-					ls.push_back(*i);
-				curRule->then(ls);
-
-				curToken = scanCurToken;
-				goto succeed;
+				selfToken->setLine(curToken->get()->getLine());
+				tokenList.push_back(selfToken);
 			}
-		mismatched:;
 		}
-		// Throw if no any rule was matched.
-		throw SyntaxError(*scanCurToken);
+		curTerm.action(dest, tokenList);
+
+		return scanCur;
+	mismatched:;
 	}
-
-succeed:;
-	return curToken;
+	// Throw a syntax error if no any rule was matched.
+	throw SyntaxError(*curToken);
 }
 
-void Blare::Parser::addRule(TokenID id, std::shared_ptr<ParseRule>& rule) {
-	parseRules[id] = rule;
+Blare::SyntaxError::SyntaxError(shared_ptr<Token> token) : runtime_error("Syntax error") {
+	this->token = token;
 }
-
-Blare::SyntaxError::SyntaxError(std::shared_ptr<Token> token) : runtime_error("Syntax error") {
+Blare::SyntaxError::SyntaxError(shared_ptr<Token> token, std::string msg) : runtime_error(msg) {
 	this->token = token;
 }
 
-Blare::SyntaxError::SyntaxError(std::shared_ptr<Token> token, std::string msg) : runtime_error(msg) {
-	this->token = token;
-}
+shared_ptr<Token> Blare::SyntaxError::getToken() { return token; }
+Blare::SyntaxError::~SyntaxError() {}
 
-std::shared_ptr<Token> Blare::SyntaxError::getToken() {
-	return token;
+Blare::ParseTerm::ParseTerm(std::deque<TokenID> tokens, ActionProc action) {
+	this->tokens = tokens;
+	this->action = action;
 }
+Blare::ParseTerm::~ParseTerm() {}
 
-Blare::SyntaxError::~SyntaxError() {
+Blare::ParseRule::ParseRule() {
 }
-
-Blare::ParseRule::ParseRule(std::deque<std::deque<TokenID>> ls, ThenProc then) : terms(ls) {
-	this->then = then;
+Blare::ParseRule::ParseRule(const std::deque<ParseTerm>& terms) {
+	this->terms = terms;
 }
-
-Blare::ParseRule::~ParseRule() {
-}
-
-std::shared_ptr<ParseRule> Blare::ParseRule::make(std::deque<std::deque<TokenID>> ls, ThenProc then) {
-	return std::make_shared<ParseRule>(ls, then);
-}
+Blare::ParseRule::~ParseRule() {}

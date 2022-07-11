@@ -1,15 +1,19 @@
 #ifndef __BLARE_LEXER_H__
 #define __BLARE_LEXER_H__
 
-#include "base.h"
-#include "util/container.hpp"
 #include <deque>
 #include <functional>
 #include <map>
 #include <regex>
 #include <string>
+#include <memory>
+
+#include "base.h"
+#include "util/container.hpp"
 
 namespace Blare {
+	using std::shared_ptr;
+
 	class LexicalError : public std::runtime_error {
 	protected:
 		size_t line;
@@ -20,6 +24,11 @@ namespace Blare {
 		virtual size_t getLine();
 	};
 
+	class Token;
+
+	static constexpr TokenID TOKEN_INVALID = INT_MIN;
+	using TokenList = Util::ArrayList<shared_ptr<Token>>;
+
 	class Token {
 	protected:
 		TokenID token;
@@ -28,19 +37,21 @@ namespace Blare {
 	public:
 		Token(TokenID token, size_t line);
 		virtual ~Token();
-		virtual TokenID getToken();
-		virtual void setToken(TokenID token);
-		virtual size_t getLine();
-		virtual void setLine(size_t line);
+		virtual TokenID getToken() noexcept;
+		virtual void setToken(TokenID token) noexcept;
+		virtual size_t getLine() noexcept;
+		virtual void setLine(size_t line) noexcept;
 
-		static inline std::shared_ptr<Token> make(TokenID token, size_t line) {
+		static inline shared_ptr<Token> make(TokenID token, size_t line) {
 			return std::make_shared<Token>(token, line);
 		}
 
 		Token& operator=(Token&) = delete;
 	};
-	static constexpr TokenID TOKEN_INVALID = INT_MIN;
-	using TokenList=Util::ArrayList<std::shared_ptr<Token>>;
+
+	constexpr bool isLexicalToken(TokenID id) noexcept {
+		return id >= 0;
+	}
 
 	/**
 	 * @brief Template class for tokens with data.
@@ -61,6 +72,12 @@ namespace Blare {
 		ValuedToken(TokenID token, size_t line, T value) : Token(token, line) {
 			this->value = value;
 		}
+		ValuedToken(TokenID token, T value) : Token(token, 0) {
+			this->value = value;
+		}
+		ValuedToken(T value) : Token(TOKEN_INVALID, 0) {
+			this->value = value;
+		}
 		/**
 		 * @brief Get data of the token.
 		 * @return Data of the token.
@@ -76,8 +93,14 @@ namespace Blare {
 			this->value = value;
 		}
 
-		static inline std::shared_ptr<ValuedToken<T>> make(TokenID token, size_t line, T data) {
+		static inline shared_ptr<ValuedToken<T>> make(TokenID token, size_t line, T data) {
 			return std::make_shared<ValuedToken<T>>(token, line, data);
+		}
+		static inline shared_ptr<ValuedToken<T>> make(TokenID token, T data) {
+			return std::make_shared<ValuedToken<T>>(token, data);
+		}
+		static inline shared_ptr<ValuedToken<T>> make(T data) {
+			return std::make_shared<ValuedToken<T>>(data);
 		}
 	};
 
@@ -92,19 +115,19 @@ namespace Blare {
 		 * @param dest Reference of pointer of token to push, its value is nullptr by default.
 		 * @return true Append the token to the list.
 		 * @return false Do not append the token to the list.
-		*/
-		using ThenProc = std::function<bool (std::smatch result,std::shared_ptr<Token>& dest)>;
+		 */
+		using ThenProc = std::function<bool(std::smatch result, shared_ptr<Token>& dest)>;
 
 		LexRule(std::regex rule, ThenProc then);
 		virtual ~LexRule();
 
-		virtual bool match(std::string str,std::shared_ptr<Token>& dest);
+		virtual bool match(std::string str, shared_ptr<Token>& dest);
 
 		LexRule& operator=(LexRule&) = delete;
 
 	protected:
-		std::regex rule; // REGEX for matching
-		ThenProc then;	 // What to execute if matched
+		std::regex rule;  // REGEX for matching
+		ThenProc then;	  // What to execute if matched
 	};
 
 	using StateID = int;
@@ -113,13 +136,13 @@ namespace Blare {
 	 */
 	class State {
 	protected:
-		std::deque<std::shared_ptr<LexRule>> rules;
+		std::deque<shared_ptr<LexRule>> rules;
 
 	public:
 		virtual ~State();
-		virtual bool match(std::string str, std::shared_ptr<Token>& dest);
+		virtual bool match(std::string str, shared_ptr<Token>& dest);
 
-		virtual void addRule(std::shared_ptr<LexRule> rule);
+		virtual void addRule(shared_ptr<LexRule> rule);
 		/**
 		 * @brief A wrap for `addRule` method.
 		 * @tparam T Type of rule object, must can be cast to `regex` object.
@@ -137,13 +160,13 @@ namespace Blare {
 		 * @param rule Rule object.
 		 * @param token Token to give on matched.
 		 * @note Set the token as `INVALID_TOKEN` to discard current token and skip matched area.
-		*/
+		 */
 		template <typename T>
 		inline void addRule(T rule, TokenID token) {
 			addRule(
 				std::make_shared<Blare::LexRule>(
 					std::regex(rule),
-					[token](std::smatch result,std::shared_ptr<Token>& dest) -> bool {
+					[token](std::smatch result, shared_ptr<Token>& dest) -> bool {
 						dest = std::make_shared<Token>(token, 0);
 						return true;
 					}));
@@ -158,10 +181,10 @@ namespace Blare {
 	 */
 	class Lexer {
 	protected:
-		static constexpr StateID STATE_INITIAL = 0; // Initial state, please register it manually in the subclass.
+		static constexpr StateID STATE_INITIAL = 0;	 // Initial state, please register it manually in the subclass.
 
-		std::map<StateID, std::shared_ptr<State>> states; // Registered states
-		StateID currentState;							  // Current state
+		std::map<StateID, shared_ptr<State>> states;  // Registered states
+		StateID currentState;							   // Current state
 
 		virtual void registerState(StateID id, std::weak_ptr<State> state);
 		virtual void unregisterState(StateID id);

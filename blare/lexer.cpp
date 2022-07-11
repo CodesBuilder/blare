@@ -2,45 +2,21 @@
 
 using namespace Blare;
 
-/**
- * @brief Constructor of class `Token'.
- * @param token Value of current token.
- * @param line Line where the token at.
- */
 Blare::Token::Token(TokenID token, size_t line) {
 	this->token = token;
 	this->line = line;
 }
 Blare::Token::~Token() {}
 
-/**
- * @brief Get value of the token.
- * @return Value of the token.
- */
-TokenID Blare::Token::getToken() {
-	return token;
-}
+TokenID Blare::Token::getToken() noexcept { return token; }
+void Blare::Token::setToken(TokenID token) noexcept {this->token = token; }
 
-void Blare::Token::setToken(TokenID token) {
-	this->token = token;
-}
-
-/**
- * @brief Get the line where the token at.
- * @return Line where the token at.
- */
-size_t Blare::Token::getLine() {
-	return line;
-}
-
-void Blare::Token::setLine(size_t line) {
-	this->line = line;
-}
+size_t Blare::Token::getLine() noexcept { return line; }
+void Blare::Token::setLine(size_t line) noexcept { this->line = line; }
 
 Blare::Lexer::Lexer() {
 	currentState = STATE_INITIAL;
 }
-
 Blare::Lexer::~Lexer() {}
 
 /**
@@ -68,9 +44,9 @@ void Blare::Lexer::unregisterState(StateID id) {
  * @exception LexicalError Throws if any lexical error has occurred.
  * @return Generated token.
  */
-TokenList Blare::Lexer::lex(std::string src) throw (LexicalError) {
+TokenList Blare::Lexer::lex(std::string src) {
 	TokenList tokens;
-	std::shared_ptr<Token> token = nullptr;
+	shared_ptr<Token> token = nullptr;
 	for (size_t i = 0, line = 0; i < src.size();) {
 		size_t end;
 
@@ -99,7 +75,7 @@ TokenList Blare::Lexer::lex(std::string src) throw (LexicalError) {
 		throw LexicalError(line);
 
 	matched:
-		i = end; // Skip scanned area.
+		i = end;  // Skip scanned area.
 	}
 
 	return tokens;
@@ -121,11 +97,11 @@ Blare::LexRule::~LexRule() {}
  * @param str String to match.
  * @return Generated token if matched, nullptr otherwise.
  */
-bool Blare::LexRule::match(std::string str, std::shared_ptr<Token>& dest) {
+bool Blare::LexRule::match(std::string str, shared_ptr<Token>& dest) {
 	std::smatch result;
 	if (!std::regex_match(str, result, rule))
 		return false;
-	return then(result,dest);
+	return then(result, dest);
 }
 
 Blare::State::~State() {}
@@ -135,9 +111,9 @@ Blare::State::~State() {}
  * @param str String to match.
  * @return Generated token if matched, nullptr otherwise.
  */
-bool Blare::State::match(std::string str, std::shared_ptr<Token>& dest) {
+bool Blare::State::match(std::string str, shared_ptr<Token>& dest) {
 	for (auto i : rules) {
-		auto result = i->match(str,dest);
+		auto result = i->match(str, dest);
 		if (result)
 			return result;
 	}
@@ -148,7 +124,7 @@ bool Blare::State::match(std::string str, std::shared_ptr<Token>& dest) {
  * @brief Add a lexical rule.
  * @param rule Lexical rule to register.
  */
-void Blare::State::addRule(std::shared_ptr<LexRule> rule) {
+void Blare::State::addRule(shared_ptr<LexRule> rule) {
 	rules.push_back(rule);
 }
 

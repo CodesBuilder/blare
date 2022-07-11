@@ -7,6 +7,7 @@ namespace Blare {
 	class SyntaxError : public std::runtime_error {
 	protected:
 		std::shared_ptr<Token> token;
+
 	public:
 		explicit SyntaxError(std::shared_ptr<Token> token);
 		explicit SyntaxError(std::shared_ptr<Token> token, std::string msg);
@@ -14,32 +15,50 @@ namespace Blare {
 		virtual ~SyntaxError();
 	};
 
-	struct ParseRule {
-		using ThenProc = std::function<void(TokenList& tokens)>;
-		ParseRule& operator=(ParseRule&) = delete;
-		std::deque<std::deque<TokenID>> terms;
-		ThenProc then;
+	struct ParseTerm final {
+		using ActionProc = std::function<void(std::shared_ptr<Token>& self, TokenList& tokens)>;
+		std::deque<TokenID> tokens;
+		ActionProc action;
 
-		ParseRule(std::deque<std::deque<TokenID>> ls, ThenProc then);
-		virtual ~ParseRule();
+		ParseTerm(std::deque<TokenID> tokens, ActionProc action);
+		~ParseTerm();
+		inline ParseTerm& operator=(const ParseTerm& x) {
+			tokens = x.tokens;
+			action = x.action;
+			return *this;
+		}
+	};
 
-		static std::shared_ptr<ParseRule> make(std::deque<std::deque<TokenID>> ls, ThenProc then);
+	struct ParseRule final {
+		std::deque<ParseTerm> terms;
+		ParseRule();
+		ParseRule(const std::deque<ParseTerm>& terms);
+		~ParseRule();
+		inline ParseRule& operator=(const ParseRule& x) {
+			terms = x.terms;
+			return *this;
+		}
 	};
 
 	class Parser {
 	protected:
-		std::map<TokenID, std::shared_ptr<ParseRule>, std::less<TokenID>> parseRules;
+		std::map<TokenID, ParseRule, std::less<TokenID>> parseRules;
 
 		virtual TokenList::const_iterator parseCore(
 			TokenList::const_iterator begin,
 			TokenList::const_iterator end,
-			TokenID token);
-		virtual void addRule(TokenID id, std::shared_ptr<ParseRule>& rule);
+			TokenID token,
+			shared_ptr<Token>& dest);
+		virtual void addRule(TokenID id, ParseRule rule);
+		virtual void addRule(TokenID id, std::initializer_list<ParseTerm> terms) {
+			addRule(id, ParseRule(terms));
+		}
+
 	public:
 		Parser();
 		virtual ~Parser();
 
-		virtual void parse(const TokenList& tokens);
+		virtual std::shared_ptr<Token> parse(const TokenList& tokens);
 	};
 }
 
