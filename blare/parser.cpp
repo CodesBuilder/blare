@@ -67,6 +67,7 @@ TokenList::const_iterator Blare::Parser::parseCore(
 					goto mismatched;
 				}
 
+				selfToken->setToken(curRuleToken);
 				selfToken->setLine(curToken->get()->getLine());
 				tokenList.push_back(selfToken);
 			}

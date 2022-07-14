@@ -27,9 +27,13 @@ int main(int argc, char** argv) {
 				src += (char)c;
 			}
 
+			std::shared_ptr<StatementsToken> ast;
 			try {
 				auto tokens = lexer->lex(src);
-				parser->parse(tokens);
+				ast = std::dynamic_pointer_cast<StatementsToken>(parser->parse(tokens));
+				for (auto i = ast; i; i = i->getData().next) {
+					printf("Statement: %d\n", i->getData().child->getToken());
+				}
 			} catch (Blare::LexicalError e) {
 				printf("Error at line %zu: %s\n", e.getLine() + 1, e.what());
 			} catch (Blare::SyntaxError e) {

@@ -16,9 +16,27 @@ namespace Blare {
 	};
 
 	struct ParseTerm final {
+	public:
 		using ActionProc = std::function<void(std::shared_ptr<Token>& self, TokenList& tokens)>;
 		std::deque<TokenID> tokens;
 		ActionProc action;
+
+	private:
+		void vargInit(ActionProc action) {
+			this->action = action;
+		}
+		template <typename... Args>
+		void vargInit(TokenID first, Args... args) {
+			tokens.push_back(first);
+			vargInit(args...);
+		}
+
+	public:
+		template <typename... Args>
+		ParseTerm(TokenID first, Args... args) {
+			tokens.push_back(first);
+			vargInit(args...);
+		}
 
 		ParseTerm(std::deque<TokenID> tokens, ActionProc action);
 		~ParseTerm();

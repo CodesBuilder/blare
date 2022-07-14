@@ -9,7 +9,8 @@ public:
 };
 
 typedef enum {
-	RULE_STATEMENT = -10000,
+	RULE_STATEMENTS = -10000,  // Statements
+	RULE_STATEMENT,			   // Any statement
 
 	RULE_FUNC_DECL,	  // Function declaration
 	RULE_PARAM_DECL,  // Parameter declaration
@@ -17,8 +18,26 @@ typedef enum {
 	RULE_VAR_DECL  // Variable declaration
 } RuleTokens;
 
+struct StatementsData;
+struct FuncDeclData;
 struct VarDeclData;
 struct ParamDeclData;
+
+using StatementsToken = Blare::ValuedToken<StatementsData>;
+using StatementToken = Blare::Token;
+using FuncDeclToken = Blare::ValuedToken<FuncDeclData>;
+using ParamDeclToken = Blare::ValuedToken<ParamDeclData>;
+using VarDeclToken = Blare::ValuedToken<VarDeclData>;
+
+struct StatementsData final {
+	std::shared_ptr<StatementToken> child;
+	std::shared_ptr<StatementsToken> next;
+};
+
+struct FuncDeclData final {
+	std::string name;
+	std::shared_ptr<ParamDeclToken> params;
+};
 
 struct VarDeclData final {
 	std::string name;
@@ -26,19 +45,5 @@ struct VarDeclData final {
 
 struct ParamDeclData final {
 	VarDeclData varDecl;
-	std::shared_ptr<ParamDeclData> next;
-
-	ParamDeclData& operator=(const ParamDeclData&) = delete;
-
-	inline ParamDeclData(VarDeclData& varDecl, std::shared_ptr<ParamDeclData> next) {
-		this->varDecl = varDecl;
-		this->next = next;
-	}
-	inline ParamDeclData(VarDeclData& varDecl) {
-		this->varDecl = varDecl;
-		this->next = std::shared_ptr<ParamDeclData>(nullptr);
-	}
+	std::shared_ptr<ParamDeclToken> next;
 };
-
-using ParamDeclToken = Blare::ValuedToken<std::shared_ptr<ParamDeclData>>;
-using VarDeclToken = Blare::ValuedToken<VarDeclData>;
